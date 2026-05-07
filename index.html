@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meerkat Simulator</title>
+    <title>better than jack</title>
     <script src="https://jsdelivr.net"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -70,8 +70,8 @@
         <div id="meerkat-display"></div>
 
         <div class="input-row">
-            <div class="input-box"><label>births</label><input type="number" id="birthRatio" value="10"></div>
-            <div class="input-box"><label>deaths</label><input type="number" id="deathRatio" value="5"></div>
+            <div class="input-box"><label>births</label><input type="number" id="birthRatio" value="5"></div>
+            <div class="input-box"><label>deaths</label><input type="number" id="deathRatio" value="10"></div>
             <div class="input-box"><label>years</label><input type="number" id="years" value="10"></div>
         </div>
         
@@ -126,7 +126,7 @@
             let deaths = pop / dRatio;
             let change = births - deaths;
             
-            pop = Math.max(0, pop + change);
+            pop = Math.max(0, pop - change);
             history.push(pop);
             
             let changeText = change >= 0 ? `+${change.toFixed(2)}` : `${change.toFixed(2)}`;
@@ -152,6 +152,7 @@
             chart.update();
         }
     }
+
 
     function drawMeerkats(count) {
         const display = document.getElementById('meerkat-display');
