@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meerkat Simulator</title>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #fdf5e6; color: #5d4037; padding: 20px; }
+        .hidden { display: none; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        
+        /* Visual Meerkat Area */
+        #meerkat-display { 
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 10px;
+            width: 100%; 
+            min-height: 200px;
+            max-height: 400px;
+            background: #edc9af; 
+            border-radius: 15px; 
+            overflow-y: auto;
+            padding: 20px;
+            margin: 20px 0;
+            border: 4px solid #d7ccc8;
+            box-sizing: border-box;
+        }
+        .meerkat-unit { width: 100%; border-radius: 5px; }
+
+        #hero-image { width: 100%; max-width: 350px; border-radius: 15px; cursor: pointer; }
+        .input-box { margin: 10px; display: inline-block; text-align: left; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #8d6e63; }
+        input[type="number"] { padding: 12px; width: 100px; border: 2px solid #d7ccc8; border-radius: 8px; font-size: 16px; }
+        
+        button { padding: 15px 40px; font-size: 18px; font-weight: bold; cursor: pointer; background: #8d6e63; color: white; border: none; border-radius: 50px; margin: 10px; }
+        
+        .scrub-section { margin: 20px 0; padding: 15px; background: #f9f4f2; border-radius: 15px; }
+        #yearSlider { width: 90%; accent-color: #8d6e63; cursor: pointer; }
+        
+        .pop-title { font-size: 1.5em; font-weight: bold; color: #5d4037; }
+
+        .log-container { margin-top: 30px; max-height: 200px; overflow-y: auto; border: 1px solid #d7ccc8; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #8d6e63; color: white; padding: 10px; position: sticky; top: 0; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        
+        .chart-wrap { height: 400px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div style="width: 800px; margin: auto;">
+    <canvas id="popChart"></canvas>
+</div>
+
+<div class="container">
+    <div id="landing">
+        <h1>this website is better than jack</h1>
+        <img id="hero-image" src="https://plain-enam-prod-public.komododecks.com/202605/07/0Wi7xQERl4tRS7AOEkvw/image.jpg" alt="Meerkat">
+        <br><br>
+        <button onclick="startSim()">start</button>
+    </div>
+
+    <div id="simScreen" class="hidden">
+        <div class="pop-title">there are <span id="currentPopDisplay">20</span> meerkats</div>
+        
+        <div id="meerkat-display"></div>
+
+        <div class="input-row">
+            <div class="input-box"><label>births</label><input type="number" id="birthRatio" value="10"></div>
+            <div class="input-box"><label>deaths</label><input type="number" id="deathRatio" value="5"></div>
+            <div class="input-box"><label>years</label><input type="number" id="years" value="10"></div>
+        </div>
+        
+        <button onclick="runSimulation()">sim</button>
+
+        <div id="results" class="hidden">
+            <div class="scrub-section">
+                <label>years</label>
+                <input type="range" id="yearSlider" min="0" value="0" step="1" oninput="updateTime(this.value)">
+                <p>year: <span id="currentYear">0</span></p>
+            </div>
+            
+            <div class="chart-wrap">
+                <canvas id="popChart"></canvas>
+            </div>
+
+            <div class="log-container">
+                <table>
+                    <thead><tr><th>year</th><th>pop</th><th>change</th></tr></thead>
+                    <tbody id="logBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const meerkatIcon = "data:image/jpeg;base64,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";
+    
+    let chart;
+    let history = [];
+
+    function startSim() {
+        document.getElementById('landing').classList.add('hidden');
+        document.getElementById('simScreen').classList.remove('hidden');
+        drawMeerkats(20); // Initial 20
+    }
+
+    function runSimulation() {
+        const bRatio = parseFloat(document.getElementById('birthRatio').value) || 1;
+        const dRatio = parseFloat(document.getElementById('deathRatio').value) || 1;
+        const totalYears = parseInt(document.getElementById('years').value) || 1;
+        
+        let pop = 20;
+        history = [pop];
+        
+        const logBody = document.getElementById('logBody');
+        logBody.innerHTML = `<tr><td>0</td><td>20.00</td><td>-</td></tr>`;
+        
+        for (let i = 1; i <= totalYears; i++) {
+            let births = pop / bRatio;
+            let deaths = pop / dRatio;
+            let change = births - deaths;
+            
+            pop = Math.max(0, pop + change);
+            history.push(pop);
+            
+            let changeText = change >= 0 ? `+${change.toFixed(2)}` : `${change.toFixed(2)}`;
+            logBody.innerHTML += `<tr><td>${i}</td><td>${pop.toFixed(2)}</td><td>${changeText}</td></tr>`;
+        }
+
+        document.getElementById('results').classList.remove('hidden');
+        document.getElementById('yearSlider').max = totalYears;
+        document.getElementById('yearSlider').value = 0;
+        updateTime(0);
+        renderChart();
+    }
+
+    function updateTime(val) {
+        let currentPop = history[val];
+        document.getElementById('currentYear').innerText = val;
+        document.getElementById('currentPopDisplay').innerText = currentPop.toFixed(2);
+        
+        drawMeerkats(Math.floor(currentPop)); // Visual update
+        
+        if (chart) {
+            chart.setActiveElements([{datasetIndex: 0, index: parseInt(val)}]);
+            chart.update();
+        }
+    }
+
+    function drawMeerkats(count) {
+        const display = document.getElementById('meerkat-display');
+        display.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            const img = document.createElement('img');
+            img.src = meerkatIcon;
+            img.className = 'meerkat-unit';
+            display.appendChild(img);
+        }
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('popChart').getContext('2d');
+        if (chart) chart.destroy();
+        
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: history.map((_, i) => "Year " + i),
+                datasets: [{
+                    label: 'Meerkat Population Count',
+                    data: history,
+                    borderColor: '#8d6e63',
+                    backgroundColor: 'rgba(141, 110, 99, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Pop Count' } },
+                    x: { title: { display: true, text: 'Years Elapsed' } }
+                }
+            }
+        });
+    }
+    
+</script>
+</body>
+</html>
